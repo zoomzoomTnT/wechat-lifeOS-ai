@@ -1,0 +1,12 @@
+{
+  agents: {
+    defaults: {
+      heartbeat: {
+        every: "30m",
+        target: "owner",
+        lightContext: false,
+        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Shanghai" }
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "生活台账",
+      "hasCanvas": false,
+      "bodyTextLen": 998,
+      "bodyTextHash": "591cff1b40d1d7a6e6ec5a934685e3c6899cca7a9377c8d0173837b10ca6bc78",
+      "bodyTextPrefix": "生活台账 LIFE LEDGER 总览 技能 表结构 流程 演练 安装 给 OpenClaw + 微信 想法落成一张表，到期自己",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "生活台账",
+      "hasCanvas": false,
+      "bodyTextLen": 998,
+      "bodyTextHash": "591cff1b40d1d7a6e6ec5a934685e3c6899cca7a9377c8d0173837b10ca6bc78",
+      "bodyTextPrefix": "生活台账 LIFE LEDGER 总览 技能 表结构 流程 演练 安装 给 OpenClaw + 微信 想法落成一张表，到期自己",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

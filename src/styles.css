@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f3eee4;
+  --color-surface: #faf7f1;
+  --color-surface-2: #ebe4d6;
+  --color-fg: #1a1814;
+  --color-muted: #6b6458;
+  --color-accent: #2f5d50;
+  --color-accent-2: #1e3d35;
+  --color-accent-fg: #f3eee4;
+  --color-paper: #f3eee4;
+  --color-ink: #1a1814;
+  --color-border: color-mix(in oklab, var(--color-ink) 12%, transparent);
+  --color-ring: #2f5d50;
+  --color-warn: #9a3b2f;
+  --color-ok: #2f5d50;
+  --font-display: "Fraunces", "Source Serif 4", serif;
+  --font-sans: "Figtree", "Source Sans 3", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-border:
+    0px 0px 0px 1px color-mix(in oklab, var(--color-ink) 8%, transparent),
+    0px 1px 2px -1px color-mix(in oklab, var(--color-ink) 8%, transparent),
+    0px 2px 8px 0px color-mix(in oklab, var(--color-ink) 5%, transparent);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --motion-quick: 150ms;
+  --motion-fast: 250ms;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+  p {
+    text-wrap: pretty;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.ledger-rules {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    color-mix(in oklab, var(--color-ink) 7%, transparent) 28px
+  );
+}
+
+.font-display {
+  font-family: var(--font-display);
+}

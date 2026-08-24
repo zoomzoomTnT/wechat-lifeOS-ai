@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BkSabwWG.js";import{a as t}from"./index-B24AA7Ub.js";var n=e();function r(){return(0,n.jsx)(`div`,{className:`flex flex-col gap-8`,children:(0,n.jsx)(t,{})})}export{r as component};

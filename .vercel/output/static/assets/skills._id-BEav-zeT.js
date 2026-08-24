@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-BkSabwWG.js";var t=e(),n=()=>(0,t.jsx)(`p`,{className:`text-muted`,children:`没有这个技能。回到列表看看六份说明书。`});export{n as notFoundComponent};
