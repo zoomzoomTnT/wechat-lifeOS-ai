@@ -18,7 +18,7 @@ metadata:
 
 ## 先开口
 
-跑 `life.py` 必须 `host=gateway`、`ask=off`、`background=false`、`yieldMs=60000`、`timeoutSeconds=15`、`python3 -u`。默认 yieldMs=10000 会把命令丢进后台，微信永远等不到 toolResult。
+不要 exec python。write `data/life-inbox/<id>.json`（`op` = fridge-add / query / sql-exec / due），再 read `*.result.json`。电脑上必须常开 `life.py serve`。
 
 ```
 python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"

@@ -420,6 +420,201 @@ def resolve_db(raw: str | None) -> Path:
     return default_db()
 
 
+def inbox_dir(db: Path) -> Path:
+    env = (os.environ.get("LIFE_INBOX") or "").strip()
+    if env:
+        return Path(env).expanduser()
+    return db.parent / "life-inbox"
+
+
+def run_job(db: Path, job: dict) -> dict:
+    if not isinstance(job, dict):
+        return {"ok": False, "error": "job must be a JSON object"}
+    op = (job.get("op") or job.get("action") or "").strip()
+    con = connect(db)
+    try:
+        if op in ("fridge-add", "fridge_add", "add"):
+            name = (job.get("name") or job.get("item") or "").strip()
+            if not name:
+                return {"ok": False, "error": "fridge-add needs name"}
+            return maybe_schema(
+                con,
+                lambda: fridge_add(
+                    con,
+                    name=name,
+                    qty=float(job.get("qty") or 1),
+                    owner_id=int(job.get("owner_id") or 1),
+                    added_by_id=int(job.get("added_by_id") or job.get("owner_id") or 1),
+                    location=job.get("location"),
+                    days=int(job["days"]) if job.get("days") is not None else None,
+                    unit=job.get("unit"),
+                    cut=bool(job.get("cut")),
+                ),
+            )
+        if op in ("fridge-list", "fridge_list", "list"):
+            return maybe_schema(con, lambda: fridge_list(con, job.get("status") or "in_stock"))
+        if op == "due":
+            return maybe_schema(con, lambda: due(con, float(job.get("within_hours") or 36)))
+        if op in ("query", "sql-query"):
+            return maybe_schema(
+                con, lambda: query(con, job.get("sql") or "", job.get("params") or [])
+            )
+        if op in ("exec", "sql-exec"):
+            return maybe_schema(
+                con, lambda: execute(con, job.get("sql") or "", job.get("params") or [])
+            )
+        if op in ("memo-add", "memo_add"):
+            title = (job.get("title") or "").strip()
+            if not title:
+                return {"ok": False, "error": "memo-add needs title"}
+
+            def _memo():
+                cur = con.execute(
+                    """
+                    INSERT INTO memos (
+                      owner_id, title, body, kind, status, due_at, timezone, cron_expr, cron_tz
+                    ) VALUES (?, ?, ?, ?, 'open', ?, ?, ?, ?)
+                    """,
+                    (
+                        int(job.get("owner_id") or 1),
+                        title,
+                        job.get("body"),
+                        job.get("kind") or "reminder",
+                        job.get("due_at"),
+                        job.get("tz") or "Asia/Tokyo",
+                        job.get("cron"),
+                        job.get("cron_tz") or job.get("tz"),
+                    ),
+                )
+                con.commit()
+                row = dict(con.execute("SELECT * FROM memos WHERE id=?", (cur.lastrowid,)).fetchone())
+                return {"ok": True, "action": "memo-add", "memo": row, "summary": f"已记备忘：{title}"}
+
+            return maybe_schema(con, _memo)
+        return {"ok": False, "error": f"unknown op {op}"}
+    finally:
+        con.close()
+
+
+def drain_inbox(db: Path) -> dict:
+    folder = inbox_dir(db)
+    folder.mkdir(parents=True, exist_ok=True)
+    applied = []
+    for path in sorted(folder.glob("*.json")):
+        if path.name.endswith(".result.json"):
+            continue
+        result_path = path.with_name(path.stem + ".result.json")
+        if result_path.exists():
+            continue
+        try:
+            job = json.loads(path.read_text(encoding="utf-8"))
+            result = run_job(db, job)
+        except Exception as exc:
+            result = {"ok": False, "error": str(exc)}
+        result_path.write_text(
+            json.dumps(result, ensure_ascii=False, indent=2, default=str) + "\n",
+            encoding="utf-8",
+        )
+        applied.append({"job": str(path), "ok": result.get("ok"), "result": str(result_path)})
+    return {"ok": True, "applied": applied, "count": len(applied), "inbox": str(folder)}
+
+
+def serve(db: Path, host: str, port: int) -> int:
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    folder = inbox_dir(db)
+    folder.mkdir(parents=True, exist_ok=True)
+    lock = threading.Lock()
+
+    def handle(job: dict) -> dict:
+        with lock:
+            return run_job(db, job)
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, fmt, *args):
+            sys.stderr.write("life-http: " + (fmt % args) + "\n")
+
+        def _send(self, code: int, obj: dict):
+            raw = json.dumps(obj, ensure_ascii=False, indent=2, default=str).encode("utf-8")
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
+        def do_GET(self):
+            u = urlparse(self.path)
+            q = {k: v[-1] for k, v in parse_qs(u.query).items()}
+            path = unquote(u.path)
+            if path in ("/", "/health"):
+                self._send(
+                    200,
+                    {
+                        "ok": True,
+                        "db": str(db),
+                        "inbox": str(folder),
+                        "listen": f"http://{host}:{port}",
+                    },
+                )
+                return
+            if path == "/fridge-add":
+                self._send(200, handle({"op": "fridge-add", **q}))
+                return
+            if path == "/fridge-list":
+                self._send(200, handle({"op": "fridge-list", **q}))
+                return
+            if path == "/due":
+                self._send(200, handle({"op": "due", **q}))
+                return
+            self._send(404, {"ok": False, "error": f"no {path}"})
+
+        def do_POST(self):
+            n = int(self.headers.get("Content-Length") or 0)
+            raw = self.rfile.read(n) if n else b"{}"
+            try:
+                job = json.loads(raw.decode("utf-8") or "{}")
+            except json.JSONDecodeError as exc:
+                self._send(400, {"ok": False, "error": f"json: {exc}"})
+                return
+            if urlparse(self.path).path in ("/fridge-add", "/job", "/"):
+                if "op" not in job:
+                    job["op"] = "fridge-add"
+                self._send(200, handle(job))
+                return
+            self._send(404, {"ok": False, "error": "POST /job"})
+
+    stop = threading.Event()
+
+    def watch():
+        while not stop.is_set():
+            try:
+                with lock:
+                    drain_inbox(db)
+            except Exception as exc:
+                sys.stderr.write(f"life-http inbox: {exc}\n")
+            stop.wait(0.25)
+
+    threading.Thread(target=watch, daemon=True).start()
+    httpd = ThreadingHTTPServer((host, port), Handler)
+    banner = {
+        "ok": True,
+        "action": "serve",
+        "listen": f"http://{host}:{port}",
+        "inbox": str(folder),
+        "db": str(db),
+        "hint": "agent should WRITE inbox/*.json (no exec). GET /fridge-add?name=...",
+    }
+    out(banner)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        stop.set()
+        httpd.server_close()
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(prog="life.py")
     p.add_argument("--db", default=None)
@@ -467,8 +662,16 @@ def main() -> int:
     fl = sub.add_parser("fridge-list")
     fl.add_argument("--status", default="in_stock")
 
+    sub.add_parser("drain-inbox")
+    srv = sub.add_parser("serve")
+    srv.add_argument("--host", default="127.0.0.1")
+    srv.add_argument("--port", type=int, default=int(os.environ.get("LIFE_HTTP_PORT") or 8788))
+
     args = p.parse_args()
     db = resolve_db(args.db)
+
+    if args.cmd == "serve":
+        return serve(db, args.host, args.port)
 
     if args.cmd != "backup" and hasattr(signal, "SIGALRM"):
         def _timeout(signum, frame):
@@ -496,6 +699,10 @@ def main() -> int:
                 else "fallback",
             }
         )
+        return 0
+
+    if args.cmd == "drain-inbox":
+        out(drain_inbox(db))
         return 0
 
     con = connect(db)
