@@ -16,7 +16,7 @@ metadata:
 
 ## 先开口
 
-看图或写库之前先说一句，例如「我先认一下这张小票。」有 `message` 工具就先发到当前微信。不要静默 tool。
+看图或写库之前先说一句。exec 用 `python3 -u`、前台、`timeoutSeconds: 15`。无 toolResult 则重试一次并回微信。
 
 不要先 `init`。食品行确认后再 `fridge-add --name "<物品>"`。
 

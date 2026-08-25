@@ -17,7 +17,7 @@ metadata:
 
 ## 先开口
 
-每次 `life.py` / `automations` **之前**先给当前微信一句中文，再 tool。不要静默。
+每次 `life.py` **之前**先给当前微信一句中文。exec 前台、`timeoutSeconds: 15`、`python3 -u`。无 toolResult 则重试一次。
 
 直接 `exec` 插入 memo，不要先 `init`。
 
