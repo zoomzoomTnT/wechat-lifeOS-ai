@@ -19,7 +19,7 @@ export const SKILLS = [
     id: "life-fridge",
     name: "life-fridge",
     title: "冰箱",
-    blurb: "fridge-add 直接插入，不必先 init。",
+    blurb: "fridge-add 直接插入。每次 tool 前先开口。",
     triggers: "冰箱、过期、蔬菜水果肉、冰茶、吃完了",
     loads: "食品相关，或记账确认后的食品行",
   },

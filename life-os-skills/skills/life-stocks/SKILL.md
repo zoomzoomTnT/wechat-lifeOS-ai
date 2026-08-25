@@ -1,9 +1,9 @@
 ---
 name: life-stocks
 description: >
-  Trial portfolio tracker in Life OS. Use when the user mentions 股票, 持仓,
-  portfolio, options, 期权到期, earnings, 财报, ticker symbols, or asks to
-  follow a position.
+  Trial portfolio tracker in Life OS. Use for 股票, 持仓, portfolio, options,
+  期权到期, earnings, 财报, ticker. Before every exec, send a short Chinese
+  ack (message tool or assistant text). Do not init first.
 version: 1.0.0
 metadata:
   openclaw:
@@ -14,7 +14,9 @@ metadata:
 
 # life-stocks — 持仓（试用）
 
-直接 `exec` 写 `holdings`，不要先 `init`。提醒走 `life-memos`。
+## 先开口
+
+写库前先给当前微信一句中文，再 `exec`。不要静默，不要先 `init`。
 
 ```bash
 python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" exec \
@@ -22,4 +24,4 @@ python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" exec \
   --params '["AAPL","US","Apple",2,0,"USD"]'
 ```
 
-`market`: `US` | `HK` | `CN`。没有行情就不要编现价。期权循环提醒：`cron_expr='25 8 * * 5'`，`cron_tz='America/New_York'`。
+`market`: `US` | `HK` | `CN`。没有行情就不要编现价。提醒走 `life-memos`。
