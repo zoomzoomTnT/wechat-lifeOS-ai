@@ -22,6 +22,7 @@ VALUES
   ('草莓', '草莓', '["strawberry"]', 'fruit', 2, 30, NULL, 'fridge', '极易坏'),
   ('葡萄', '葡萄', '["grape"]', 'fruit', 5, NULL, NULL, 'fridge', NULL),
   ('橙子', '橙子', '["脐橙","orange"]', 'fruit', 14, NULL, 7, 'fridge', NULL),
+  ('李子', '李子', '["plum","布林"]', 'fruit', 4, NULL, 3, 'fridge', '易软，尽快吃'),
   ('西瓜', '西瓜', '["watermelon"]', 'fruit', 3, NULL, 5, 'fridge', '切开必须冷藏，3天'),
   ('鸡胸', '鸡胸', '["鸡胸肉","chicken breast"]', 'meat', 2, 60, NULL, 'fridge', '生鲜2天，否则冷冻'),
   ('鸡肉', '鸡肉', '["鸡腿","chicken"]', 'meat', 2, 60, NULL, 'fridge', NULL),

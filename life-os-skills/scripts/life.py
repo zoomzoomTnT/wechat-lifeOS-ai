@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Life OS SQLite kernel. JSON on stdout (always flushed)."""
+"""Life OS SQLite kernel. JSON on stdout (always flushed). Exits in ≤8s."""
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
 import os
+import signal
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
@@ -21,10 +22,15 @@ SKILL_ROOT = HERE.parent
 SCHEMA = SKILL_ROOT / "schema.sql"
 FOOD = HERE / "food_knowledge.sql"
 
-# OpenClaw captures stdout as a pipe; force line buffering.
+# OpenClaw exec captures a pipe. Never block on stdin; always flush JSON.
+try:
+    sys.stdin.close()
+except Exception:
+    pass
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(line_buffering=True, encoding="utf-8")
     sys.stderr.reconfigure(line_buffering=True, encoding="utf-8")
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
 
 
 def default_db() -> Path:
@@ -51,9 +57,9 @@ def pragma(con: sqlite3.Connection, sql: str) -> None:
 
 def connect(db: Path) -> sqlite3.Connection:
     db.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(str(db), timeout=5)
+    con = sqlite3.connect(str(db), timeout=2)
     con.row_factory = sqlite3.Row
-    pragma(con, "PRAGMA busy_timeout = 3000")
+    pragma(con, "PRAGMA busy_timeout = 2000")
     pragma(con, "PRAGMA foreign_keys = ON")
     return con
 
@@ -464,6 +470,13 @@ def main() -> int:
     args = p.parse_args()
     db = resolve_db(args.db)
 
+    if args.cmd != "backup" and hasattr(signal, "SIGALRM"):
+        def _timeout(signum, frame):
+            raise TimeoutError("life.py exceeded 8s")
+
+        signal.signal(signal.SIGALRM, _timeout)
+        signal.alarm(8)
+
     if args.cmd == "path":
         out({"ok": True, "db": str(db), "exists": db.exists(), "script": str(Path(__file__).resolve())})
         return 0
@@ -544,6 +557,8 @@ def main() -> int:
         else:
             raise SystemExit(f"unknown cmd {args.cmd}")
     finally:
+        if hasattr(signal, "SIGALRM"):
+            signal.alarm(0)
         con.close()
     return 0
 
@@ -554,5 +569,8 @@ if __name__ == "__main__":
     except sqlite3.Error as exc:
         out({"ok": False, "error": f"sqlite: {exc}"})
         raise SystemExit(1)
+    except TimeoutError as exc:
+        out({"ok": False, "error": str(exc)})
+        raise SystemExit(2)
     except BrokenPipeError:
         raise SystemExit(0)

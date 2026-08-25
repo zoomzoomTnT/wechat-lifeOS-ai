@@ -17,7 +17,7 @@ metadata:
 
 ## 先开口
 
-每次 `life.py` / `automations` **之前**先给当前微信一句中文，再 tool。不要静默。
+每次 `life.py` **之前**先在助手文本写一句中文。exec：`host=gateway` `ask=off` `yieldMs=60000` `timeoutSeconds=15`。
 
 直接 `exec` 插入 memo，不要先 `init`。
 

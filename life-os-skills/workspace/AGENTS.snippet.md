@@ -1,23 +1,27 @@
 # Life OS（贴进工作区 AGENTS.md）
 
 ```
-python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"
+python3 -u "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"
 ```
 
 - 冰箱 → `fridge-add --name "<物品>"`（不要先 init）
 - 小票 → `life-finance`
-- 提醒 / 期权 → `life-memos`；食品过期靠心跳 `due`
-- 心跳渠道 `openclaw-weixin`，时区 `Asia/Tokyo`
-- 备份：`life.py backup ~/backup/life.db`
+- 提醒 / 期权 → `life-memos`
 
 金额用整数分。
 
-## 先开口
+## 先开口 + exec 不要进后台
 
-微信没有「正在思考」。**每一次** tool call（`exec` / `life.py` / 读文件）之前，必须先让用户看到一句中文。
+微信没有「正在思考」。先在**助手文本**写一句中文，再 exec。不要先调 `message` 工具（会结束本轮，exec 被丢掉）。
 
-1. 有 `message` 工具：先发到**当前微信会话**（不要填别人的 `to`），再跑命令。
-2. 没有：同一轮助手文本里先写那句话，再 tool。禁止一轮里只有 tool、一个字都没有。
-3. 工具返回后马上用中文说结果，再决定要不要下一个 tool。不要连续静默 tool。
+`exec` 必须带：
 
-心跳空转仍只回 `HEARTBEAT_OK`，不要为心跳寒暄。
+```
+host=gateway  ask=off  background=false  yieldMs=60000  timeoutSeconds=15
+```
+
+OpenClaw 默认 `yieldMs=10000`：命令超过 10 秒就被丢进后台，微信会话**永远等不到 toolResult**。`yieldMs=60000` 让 15 秒超时先触发，一定会回来。
+
+用户下一条若发现上一轮卡在 toolUse：补跑那次写入，不要当没发生。
+
+心跳空转只回 `HEARTBEAT_OK`。

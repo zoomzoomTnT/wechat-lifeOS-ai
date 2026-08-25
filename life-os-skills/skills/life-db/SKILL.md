@@ -18,7 +18,7 @@ metadata:
 
 ## 先开口
 
-每次跑 `life.py` 之前先给当前微信一句中文（`message` 工具，或同一轮助手文本）。不要静默 tool。
+跑 `life.py` 必须 `host=gateway`、`ask=off`、`background=false`、`yieldMs=60000`、`timeoutSeconds=15`、`python3 -u`。默认 yieldMs=10000 会把命令丢进后台，微信永远等不到 toolResult。
 
 ```
 python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"
