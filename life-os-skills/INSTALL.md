@@ -19,14 +19,8 @@ cp -R scripts ~/.openclaw/workspace/life-os/
 更省事的做法：整个目录放进去。
 
 ```bash
-cp -R . ~/.openclaw/workspace/life-os-skills
 mkdir -p ~/.openclaw/workspace/skills
-ln -s ../life-os-skills/skills/life-db ~/.openclaw/workspace/skills/life-db
-ln -s ../life-os-skills/skills/life-memos ~/.openclaw/workspace/skills/life-memos
-ln -s ../life-os-skills/skills/life-finance ~/.openclaw/workspace/skills/life-finance
-ln -s ../life-os-skills/skills/life-fridge ~/.openclaw/workspace/skills/life-fridge
-ln -s ../life-os-skills/skills/life-stocks ~/.openclaw/workspace/skills/life-stocks
-ln -s ../life-os-skills/skills/life-proactive ~/.openclaw/workspace/skills/life-proactive
+cp -R . ~/.openclaw/workspace/skills/life-os-skills
 ```
 
 各 SKILL 中 `{baseDir}` = `~/.openclaw/workspace/life-os-skills`。
