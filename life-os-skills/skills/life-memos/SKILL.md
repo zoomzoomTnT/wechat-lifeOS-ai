@@ -17,7 +17,13 @@ metadata:
 
 ## 先开口
 
-每次 `life.py` **之前**先在助手文本写一句中文。exec：`host=gateway` `ask=off` `yieldMs=60000` `timeoutSeconds=15`。
+每次备忘：**不要 exec python**。write `data/life-inbox/<id>.json`：
+
+```json
+{"op": "memo-add", "title": "<标题>", "due_at": "<UTC ISO>", "kind": "reminder"}
+```
+
+然后 read `data/life-inbox/<id>.result.json`。循环提醒加 `"cron": "25 8 * * 5", "cron_tz": "America/New_York"`。
 
 直接 `exec` 插入 memo，不要先 `init`。
 

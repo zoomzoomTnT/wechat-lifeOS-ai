@@ -2,44 +2,34 @@
 name: life-fridge
 description: >
   Track fridge food in Life OS. Use for 冰箱, 冷冻, 过期, 蔬菜, 水果, 肉,
-  牛奶, 剩菜, 冰水, 冰茶, 吃完了, 扔掉. Ack as assistant text (not the
-  message tool), then one gateway exec of fridge-add. yieldMs MUST be 60000
-  so OpenClaw does not background at 10s. ask=off. Do not run init.
+  牛奶, 剩菜, 冰水, 冰茶, 吃完了, 扔掉. Do NOT exec python. Write a JSON
+  job to data/life-inbox/ then read the .result.json. life.py serve must be running.
 version: 1.0.0
 metadata:
   openclaw:
     emoji: "🧊"
-    requires:
-      bins: ["python3"]
+    requires: {}
 ---
 
 # life-fridge — 冰箱
 
-脚本在终端里是秒回的。微信里「发出去没结果」是 **OpenClaw exec 默认 10 秒把命令丢进后台**，WeChat 收不到 `Exec finished`，于是 `stopReason: toolUse`、没有 toolResult。
+**不要 `exec python3 life.py`。** OpenClaw 的 python exec 在微信里经常发了没结果。
 
-## exec 参数（必须原样带上）
+## 写入（用 write 工具，不是 exec）
 
-不要用 `message` 工具先发微信（会把这一轮结束掉，后面的 exec 被丢掉）。**助手文本里先写一句**，同一轮再 exec：
+1. 助手文本先说一句：「好，记进冰箱。」
+2. **write** 这个文件（workspace 相对路径）：
+
+`data/life-inbox/<随便唯一名>.json`
 
 ```json
-{
-  "command": "python3 -u \"$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py\" fridge-add --name \"<物品>\"",
-  "host": "gateway",
-  "ask": "off",
-  "background": false,
-  "yieldMs": 60000,
-  "timeoutSeconds": 15
-}
+{"op": "fridge-add", "name": "<物品>"}
 ```
 
-- `yieldMs` 默认是 **10000**。设成 60000，让 15s `timeoutSeconds` 先到，**一定要有 toolResult**（成功或超时 JSON），禁止被丢进后台。
-- `host: gateway`：和你手动跑是同一台机器、同一个 `life.db`。不要 `sandbox`。
-- `ask: off`：不要等电脑上的批准弹窗（微信里看不到）。
+切开加 `"cut": true`。有天数加 `"days": 3`。
 
-## 结果
+3. **read** `data/life-inbox/<同名>.result.json`。没有就隔一下再 read，最多 5 次。
+4. `ok: true` → 「记下了，大约 ×月×日过期。」把 JSON 里的 `expires_at` 换成本地日期。
+5. 没有 result → 「本大王这边的入库服务没在跑。你在电脑上开一下 `life.py serve`。」然后停。不要改去 exec python。
 
-- `ok: true` → 「记下了，大约 ×月×日过期。」
-- 有 toolResult 但是失败 → 把 `error` 说给用户，停。
-- **没有 toolResult**：说「刚才没写上」，用同样参数再 exec **一次**。仍没有就停。
-
-不要 `init`。切开加 `--cut`。
+列出：write `{"op":"fridge-list"}`，同样读 `.result.json`。
