@@ -7,11 +7,10 @@ const BODIES: Record<string, { why: string; does: string[]; not: string[] }> = {
   "life-db": {
     why: "所有领域共用约定：路径、CLI、金额用分、UTC、认人用 handle。",
     does: [
-      "幂等 init / migrate",
-      "JSON 输出的 query / exec / due / backup",
-      "把微信 peer id upsert 成 people.handle",
+      "ensure（库已在则秒退）/ backup / 裸 SQL",
+      "JSON 输出的 query / exec / due",
     ],
-    not: ["不解释小票", "不创建 cron", "不跟用户闲聊"],
+    not: ["不要抢「冰箱加西瓜」", "不要每轮都跑 init", "不解释小票"],
   },
   "life-finance": {
     why: "看图分录是最容易编造金额的地方，必须对总价、去重、先确认再入账。",
@@ -26,8 +25,8 @@ const BODIES: Record<string, { why: string; does: string[]; not: string[] }> = {
   "life-fridge": {
     why: "食品有保质期。常识写进 food_knowledge，过期必须变成 memo 才会找你。",
     does: [
-      "从记账食品行或手动（冰茶）入库",
-      "过期前 2 天 + 当天两条 expiry memo",
+      "一条 fridge-add（西瓜等），不要先 init",
+      "过期前 2 天 + 当天两条 expiry memo，交给心跳",
       "吃完/丢掉后记 preference 与 repurchase",
     ],
     not: ["矿泉水不建过期提醒", "不在没确认时标 eaten"],

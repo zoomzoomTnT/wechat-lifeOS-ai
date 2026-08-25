@@ -1,10 +1,11 @@
 ---
 name: life-db
 description: >
-  Life OS SQLite kernel (life.db) shared by memos, finance, fridge, and stocks.
-  Use whenever the user records life data, asks to 记账 / 备忘 / 冰箱 / 持仓,
-  initialize or backup the database, run SQL against life.db, or any life-*
-  skill needs the schema. Always use this skill before writing to the DB.
+  Life OS SQLite kernel: init/ensure, backup, and raw SQL against life.db.
+  Use for database bootstrap, backup, schema questions, or when a domain skill
+  says to run life.py query/exec. Do not use this as the first skill for 冰箱,
+  西瓜, fridge, 记账, 小票, 持仓, or 提醒 — those have their own skills and
+  already call life.py. Never run init in a loop; prefer fridge-add / ensure.
 version: 1.0.0
 metadata:
   openclaw:
@@ -16,77 +17,48 @@ metadata:
 
 # life-db — 生活台账内核
 
-所有生活数据写进 **一个** SQLite 文件，方便整文件拷出备份。
+脚本（固定路径，不要写 `{baseDir}` 占位符）：
+
+```
+LIFE=~/.openclaw/workspace/skills/life-os-skills/scripts/life.py
+```
+
+`life.py` 自己会找到 schema。**加冰箱不要跑 init**，直接 `fridge-add`。
 
 ## 路径
 
 | 项 | 值 |
 |---|---|
-| DB | `$OPENCLAW_WORKSPACE_DIR/data/life.db` 或 `~/.openclaw/workspace/data/life.db` |
-| 覆盖 | 环境变量 `LIFE_DB` |
-| Schema | 本技能包 `schema.sql` |
-| CLI | `python3 {baseDir}/scripts/life.py` |
-| 时区 | 主人本地默认 `Asia/Tokyo`；期权事件仍用 `America/New_York` |
+| DB | `~/.openclaw/workspace/data/life.db`（可用 `LIFE_DB` 覆盖） |
+| CLI | `python3 $LIFE` |
+| 时区 | 主人本地默认 `Asia/Tokyo` |
 
-`{baseDir}` = `~/.openclaw/workspace/skills/life-os-skills`（整包拷进 workspace skills 后的根目录）。
-
-## 每次会话先做
+## 命令
 
 ```bash
-python3 {baseDir}/scripts/life.py --db "$LIFE_DB" path
-python3 {baseDir}/scripts/life.py init          # 幂等
-```
-
-若 `people.handle` 仍是 `'owner'`，用当前微信 peer id upsert 主人：
-
-```bash
-python3 {baseDir}/scripts/life.py exec \
-  "UPDATE people SET handle=?, display_name=?, updated_at=datetime('now') WHERE id=1" \
-  --params '["<weixin-peer-id>","主人"]'
-```
-
-多用户：`INSERT` 新 `people` 行，`role` 为 `member` / `guest`。凭微信 id 认人，不要凭昵称。
-
-## CLI 合同
-
-stdout **永远是 JSON**。不要自己拼 `sqlite3` 除非用户明确要求。
-
-```bash
-python3 {baseDir}/scripts/life.py query "SELECT ..." --params '[]'
-python3 {baseDir}/scripts/life.py exec  "INSERT ..." --params '["a",1]'
-python3 {baseDir}/scripts/life.py due --within-hours 36
-python3 {baseDir}/scripts/life.py backup ~/backup/life-$(date +%Y%m%d).db
-python3 {baseDir}/scripts/life.py fingerprint --barcode "262508241912" --printed-at "2026-08-24 19:12:03"
-python3 {baseDir}/scripts/life.py lookup-receipt --barcode "262508241912" --printed-at "2026-08-24 19:12:03"
+python3 "$LIFE" path                 # 打印 db 路径，瞬间返回
+python3 "$LIFE" ensure               # 已有库则秒退，不要用 init
+python3 "$LIFE" fridge-add --name 西瓜
+python3 "$LIFE" fridge-list
+python3 "$LIFE" query "SELECT ..." --params '[]'
+python3 "$LIFE" exec  "INSERT ..." --params '["a",1]'
+python3 "$LIFE" due --within-hours 36
+python3 "$LIFE" backup ~/backup/life-$(date +%Y%m%d).db
 ```
 
 规则：
 
-- `query` 只允许 **一条** SELECT。写操作用 `exec`。
-- 金额用 **整数分**（元 × 100）。禁止 float 存钱。
-- 时间存 **UTC ISO**（`2026-08-24T12:25:00Z`）。展示时按 `people.timezone` 或 memo 自己的 `timezone`。
-- 改数据后写一行 `events`（domain/action/actor/entity）。
+- 一次用户请求最多跑 **一条** `ensure`/`init`。库已存在时用 `ensure`。禁止反复 init。
+- stdout 永远是 JSON。超时 8 秒就停，不要空等。
+- 金额用整数分。时间存 UTC ISO。
+- 不要导出 `$LIFE_DB` 再传 `--db "$LIFE_DB"`（空变量会把路径搞乱）。省略 `--db` 即可。
 
-## 备份
+## 路由
 
-用户说「备份数据库 / 把 db 拷出去」：
-
-1. `life.py backup <目标路径>`（会 checkpoint WAL，拷的是一致快照）
-2. 告诉用户：拷贝这一个 `.db` 即可；不要只拷正在写入的原文件而不 backup
-3. 不要把 `life.db` 提交到 git 或发到群里
-
-## 读详细 schema
-
-需要列定义、枚举、跨表关系时，读 `{baseDir}/schema.sql` 和 `{baseDir}/skills/life-db/references/conventions.md`。
-
-## 路由到领域技能
-
-| 用户意图 | 接着读 |
+| 用户意图 | 用哪个技能，不要停在本文件 |
 |---|---|
-| 提醒、cron、到期、期权周五 | `skills/life-memos/SKILL.md` |
-| 小票、花了、记账、商家 | `skills/life-finance/SKILL.md` |
-| 冰箱、过期、蔬菜水果肉 | `skills/life-fridge/SKILL.md` |
-| 持仓、期权、股票 | `skills/life-stocks/SKILL.md` |
-| heartbeat / 主动找我 | `skills/life-proactive/SKILL.md` |
-
-跨领域写入顺序：**先 finance/fridge/stocks 行，再写 memos**（memos 挂 `source_*`）。
+| 冰箱、西瓜、过期、冰茶 | `life-fridge` → `fridge-add` |
+| 小票、记账 | `life-finance` |
+| 提醒、cron、期权到期 | `life-memos` |
+| 持仓 | `life-stocks` |
+| 心跳 | `life-proactive` |

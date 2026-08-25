@@ -2,9 +2,7 @@
 -- Default path: ~/.openclaw/workspace/data/life.db
 -- Backup: python3 scripts/life.py backup ~/backup/life-YYYYMMDD.db
 -- Money is INTEGER cents. Timestamps are ISO-8601 UTC unless noted.
-
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = WAL;
+-- Do not set journal_mode here — life.py sets WAL after connect.
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version INTEGER PRIMARY KEY,
