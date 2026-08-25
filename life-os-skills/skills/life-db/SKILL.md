@@ -26,8 +26,9 @@ metadata:
 | 覆盖 | 环境变量 `LIFE_DB` |
 | Schema | 本技能包 `schema.sql` |
 | CLI | `python3 {baseDir}/scripts/life.py` |
+| 时区 | 主人本地默认 `Asia/Tokyo`；期权事件仍用 `America/New_York` |
 
-`{baseDir}` = 本技能包根目录（`life-os-skills/`，与 `skills/` 同级）。
+`{baseDir}` = `~/.openclaw/workspace/skills/life-os-skills`（整包拷进 workspace skills 后的根目录）。
 
 ## 每次会话先做
 
@@ -55,7 +56,8 @@ python3 {baseDir}/scripts/life.py query "SELECT ..." --params '[]'
 python3 {baseDir}/scripts/life.py exec  "INSERT ..." --params '["a",1]'
 python3 {baseDir}/scripts/life.py due --within-hours 36
 python3 {baseDir}/scripts/life.py backup ~/backup/life-$(date +%Y%m%d).db
-python3 {baseDir}/scripts/life.py fingerprint --name-norm "盒马鲜生" --date "2026-08-24" --total-cents 12850 --sha "<sha256>"
+python3 {baseDir}/scripts/life.py fingerprint --barcode "262508241912" --printed-at "2026-08-24 19:12:03"
+python3 {baseDir}/scripts/life.py lookup-receipt --barcode "262508241912" --printed-at "2026-08-24 19:12:03"
 ```
 
 规则：

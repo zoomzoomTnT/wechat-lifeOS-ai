@@ -52,12 +52,32 @@ def init_db(con: sqlite3.Connection) -> dict:
     con.executescript(SCHEMA.read_text(encoding="utf-8"))
     if FOOD.exists():
         con.executescript(FOOD.read_text(encoding="utf-8"))
-    con.execute(
-        "INSERT OR IGNORE INTO schema_migrations(version) VALUES (1)"
-    )
-    con.commit()
+    migrate(con)
     n = con.execute("SELECT COUNT(*) AS c FROM food_knowledge").fetchone()["c"]
-    return {"ok": True, "action": "init", "food_knowledge": n}
+    return {"ok": True, "action": "init", "schema": 2, "food_knowledge": n}
+
+
+def table_columns(con: sqlite3.Connection, table: str) -> set[str]:
+    return {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
+
+
+def migrate(con: sqlite3.Connection) -> None:
+    cols = table_columns(con, "receipts")
+    if "barcode" not in cols:
+        con.execute("ALTER TABLE receipts ADD COLUMN barcode TEXT")
+    if "printed_at" not in cols:
+        con.execute("ALTER TABLE receipts ADD COLUMN printed_at TEXT")
+    con.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_barcode_printed
+        ON receipts(barcode, printed_at)
+        WHERE barcode IS NOT NULL AND printed_at IS NOT NULL
+        """
+    )
+    con.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (1)")
+    con.execute("INSERT OR IGNORE INTO schema_migrations(version) VALUES (2)")
+    con.commit()
+
 
 
 def query(con: sqlite3.Connection, sql: str, params) -> dict:
@@ -143,10 +163,18 @@ def backup(con: sqlite3.Connection, dest: Path) -> dict:
     }
 
 
-def fingerprint(name_norm: str, date: str | None, total_cents: int, sha: str | None) -> str:
-    day = (date or "")[:10]
-    prefix = (sha or "")[:16]
-    raw = f"{name_norm}|{day}|{total_cents}|{prefix}"
+def fingerprint(
+    barcode: str | None = None,
+    printed_at: str | None = None,
+    name_norm: str | None = None,
+    total_cents: int | None = None,
+) -> str:
+    stamp = (printed_at or "").strip()
+    code = (barcode or "").strip()
+    if code and stamp:
+        raw = f"{code}|{stamp}"
+    else:
+        raw = f"{(name_norm or '').strip()}|{stamp}|{total_cents or 0}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
@@ -184,10 +212,15 @@ def main() -> int:
     b.add_argument("dest")
 
     fp = sub.add_parser("fingerprint")
-    fp.add_argument("--name-norm", required=True)
-    fp.add_argument("--date", default="")
-    fp.add_argument("--total-cents", type=int, required=True)
-    fp.add_argument("--sha", default="")
+    fp.add_argument("--barcode", default="")
+    fp.add_argument("--printed-at", default="")
+    fp.add_argument("--name-norm", default="")
+    fp.add_argument("--total-cents", type=int, default=0)
+
+    look = sub.add_parser("lookup-receipt")
+    look.add_argument("--barcode", default="")
+    look.add_argument("--printed-at", default="")
+    look.add_argument("--fingerprint", default="")
 
     args = p.parse_args()
     db = Path(args.db).expanduser()
@@ -201,8 +234,12 @@ def main() -> int:
             {
                 "ok": True,
                 "fingerprint": fingerprint(
-                    args.name_norm, args.date, args.total_cents, args.sha
+                    barcode=args.barcode,
+                    printed_at=args.printed_at,
+                    name_norm=args.name_norm,
+                    total_cents=args.total_cents,
                 ),
+                "mode": "barcode" if args.barcode.strip() and args.printed_at.strip() else "fallback",
             }
         )
         return 0
@@ -218,7 +255,27 @@ def main() -> int:
         elif args.cmd == "due":
             if not db.exists() or db.stat().st_size == 0:
                 init_db(con)
+            else:
+                migrate(con)
             out(due(con, args.within_hours))
+        elif args.cmd == "lookup-receipt":
+            migrate(con)
+            fp = args.fingerprint.strip()
+            if not fp:
+                fp = fingerprint(args.barcode, args.printed_at)
+            rows = [
+                dict(r)
+                for r in con.execute(
+                    """
+                    SELECT * FROM receipts
+                    WHERE fingerprint = ?
+                       OR (barcode = ? AND printed_at = ? AND ? != '')
+                    ORDER BY id DESC
+                    """,
+                    (fp, args.barcode.strip(), args.printed_at.strip(), args.barcode.strip()),
+                ).fetchall()
+            ]
+            out({"ok": True, "fingerprint": fp, "rows": rows, "count": len(rows)})
         elif args.cmd == "backup":
             out(backup(con, Path(args.dest).expanduser()))
         else:

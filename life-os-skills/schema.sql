@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS people (
   display_name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'member' -- owner | member | guest
     CHECK (role IN ('owner', 'member', 'guest')),
-  timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
+  timezone TEXT NOT NULL DEFAULT 'Asia/Tokyo',
   locale TEXT NOT NULL DEFAULT 'zh-CN',
   notes TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   payer_id INTEGER NOT NULL REFERENCES people(id),
   merchant_id INTEGER REFERENCES merchants(id),
   purchased_at TEXT,                  -- local wall time as ISO, see timezone
-  timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
+  timezone TEXT NOT NULL DEFAULT 'Asia/Tokyo',
   currency TEXT NOT NULL DEFAULT 'CNY',
   subtotal_cents INTEGER,
   tax_cents INTEGER NOT NULL DEFAULT 0,
@@ -56,8 +56,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   computed_total_cents INTEGER,       -- sum(line items)
   total_match INTEGER,                -- 1 / 0 / NULL (unknown)
   image_path TEXT,
-  image_sha256 TEXT,
-  fingerprint TEXT,                   -- name_norm|date|total_cents|sha256-prefix
+  barcode TEXT,                       -- 票面条码 / 流水号 / 订单号
+  printed_at TEXT,                    -- 票面打印时间（墙上时间，原样）
+  fingerprint TEXT,                   -- barcode|printed_at，无条码则 merchant|printed_at|total
   status TEXT NOT NULL DEFAULT 'pending_confirm'
     CHECK (status IN ('pending_confirm', 'confirmed', 'rejected', 'duplicate')),
   duplicate_of INTEGER REFERENCES receipts(id),
@@ -68,7 +69,9 @@ CREATE TABLE IF NOT EXISTS receipts (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_fingerprint
   ON receipts(fingerprint) WHERE fingerprint IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_receipts_sha ON receipts(image_sha256);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_receipts_barcode_printed
+  ON receipts(barcode, printed_at)
+  WHERE barcode IS NOT NULL AND printed_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_receipts_payer ON receipts(payer_id, purchased_at);
 
 -- Same physical ticket claimed by another person (household share / de-dupe)
@@ -159,7 +162,7 @@ CREATE TABLE IF NOT EXISTS memos (
     CHECK (status IN ('open','snoozed','done','cancelled')),
   priority INTEGER NOT NULL DEFAULT 3 CHECK (priority BETWEEN 1 AND 5),
   due_at TEXT,                        -- UTC ISO; NULL = unscheduled
-  timezone TEXT NOT NULL DEFAULT 'Asia/Shanghai',
+  timezone TEXT NOT NULL DEFAULT 'Asia/Tokyo',
   cron_expr TEXT,                     -- 5-field cron if recurring
   cron_tz TEXT,                       -- IANA tz for cron_expr
   automation_id TEXT,                 -- OpenClaw automations job id
@@ -216,4 +219,4 @@ CREATE INDEX IF NOT EXISTS idx_events_time ON events(created_at);
 
 -- Seed: owner placeholder (agent upserts real WeChat handle on first run)
 INSERT OR IGNORE INTO people (id, handle, display_name, role, timezone)
-VALUES (1, 'owner', '主人', 'owner', 'Asia/Shanghai');
+VALUES (1, 'owner', '主人', 'owner', 'Asia/Tokyo');

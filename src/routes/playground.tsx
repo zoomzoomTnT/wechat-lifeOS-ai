@@ -59,7 +59,7 @@ function Playground() {
                 {RECEIPT_DEMO.merchant}
               </h2>
               <p className="mt-1 text-sm text-muted">
-                {RECEIPT_DEMO.when} · 付款人 {RECEIPT_DEMO.payer}
+                {RECEIPT_DEMO.when} · 票号 {RECEIPT_DEMO.barcode} · 付款人 {RECEIPT_DEMO.payer}
               </p>
               <ul className="mt-5 divide-y divide-border">
                 {RECEIPT_DEMO.lines.map((l) => (
@@ -95,7 +95,7 @@ function Playground() {
                 </div>
               </dl>
               <p className="mt-5 text-sm leading-relaxed text-muted">
-                对不上就停在 pending_confirm，不准 confirmed。另一人再传同一张票只加
+                对不上就停在 pending_confirm，不准 confirmed。另一人再传同一张票（同一 barcode + 票面时间）只加
                 receipt_claims，不建第二张。
               </p>
             </>
@@ -109,9 +109,9 @@ function Playground() {
                 home_nearby）。食品行 is_food=1，下一步才进冰箱。
               </p>
               <pre className="mt-5 overflow-x-auto rounded-lg bg-ink p-4 font-mono text-[12px] text-paper/90">
-{`INSERT receipts (payer_id, total_cents, status…)
+{`INSERT receipts (payer_id, barcode, printed_at, total_cents, status…)
 INSERT receipt_items × ${RECEIPT_DEMO.lines.length}
-fingerprint 未命中 → 新票`}
+lookup-receipt 未命中 → 新票`}
               </pre>
             </>
           )}

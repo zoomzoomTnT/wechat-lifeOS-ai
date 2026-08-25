@@ -36,7 +36,7 @@ function InstallPage() {
         <h2 className="font-display text-xl">备份</h2>
         <CodeBlock
           className="mt-3"
-          code={`python3 ~/.openclaw/workspace/life-os-skills/scripts/life.py backup ~/backup/life-$(date +%Y%m%d).db`}
+          code={`python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py backup ~/backup/life-$(date +%Y%m%d).db`}
         />
         <p className="mt-3 text-sm text-muted">
           用 CLI 的 backup，不要直接拷正在写入的 db（WAL）。这一个文件就可以带到 OpenClaw 外面。

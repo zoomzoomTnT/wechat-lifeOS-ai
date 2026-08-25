@@ -7,8 +7,9 @@ Store integer **cents**. `128.50 CNY` → `12850`. Display: divide by 100, keep 
 ## Time
 
 - Columns `*_at` are UTC ISO-8601 with `Z`.
-- `timezone` / `cron_tz` are IANA names (`Asia/Shanghai`, `America/New_York`).
-- Options expiry "Friday 8:25 ET" → `cron_expr` `25 8 * * 5` + `cron_tz=America/New_York`. Convert to the user's local zone only when speaking.
+- `timezone` / `cron_tz` are IANA names (`Asia/Tokyo`, `America/New_York`).
+- Local wall clock for the owner defaults to **Asia/Tokyo**.
+- Options expiry "Friday 8:25 ET" → `cron_expr` `25 8 * * 5` + `cron_tz=America/New_York`. Convert to Tokyo only when speaking.
 
 ## Identity
 
@@ -18,9 +19,20 @@ Expense **归属** = `receipts.payer_id`. Household viewing / split = `receipt_c
 
 ## Dedup
 
-Receipt fingerprint = sha256(`name_norm|YYYY-MM-DD|total_cents|sha256[:16]`)[:32].
+小票去重看 **票面 barcode + 票面时间戳**，不看图片哈希。
 
-If fingerprint or `image_sha256` hits an existing confirmed/pending row:
+- `barcode`：条形码数字、二维码下方编号、流水号、订单号、小票号。去掉空格。
+- `printed_at`：票面上印的时间，原样保存（如 `2026-08-24 19:12:03`）。
+- `fingerprint` = sha256(`barcode|printed_at`)[:32]
+- 没有 barcode 时（口头「午饭 38」）：sha256(`name_norm|printed_at|total_cents`)[:32]，并告诉用户去重较弱。
+
+写入前：
+
+```bash
+python3 {baseDir}/scripts/life.py lookup-receipt --barcode "..." --printed-at "..."
+```
+
+命中已有 confirmed/pending 行：
 
 - Do **not** insert a second ticket.
 - `INSERT` a `receipt_claims` row for the new person if needed.

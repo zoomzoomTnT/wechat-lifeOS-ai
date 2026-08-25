@@ -47,7 +47,7 @@ python3 {baseDir}/scripts/life.py due --within-hours 36
 
 中文、像朋友、一句事实 + 一句问句。禁止长报告。禁止「作为你的 AI 助手」。
 
-夜间（用户时区 22:00–08:00）除非 priority=1，否则不发。Heartbeat 应配 `activeHours`。
+夜间（Asia/Tokyo 22:00–08:00）除非 priority=1，否则不发。Heartbeat 应配 `activeHours`，`target: "openclaw-weixin"`。
 
 ## 渠道
 

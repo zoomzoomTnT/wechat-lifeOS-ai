@@ -57,7 +57,7 @@ export const TABLES = [
       ["handle", "微信 / OpenClaw peer id"],
       ["display_name", "称呼"],
       ["role", "owner | member | guest"],
-      ["timezone", "默认 Asia/Shanghai"],
+      ["timezone", "默认 Asia/Tokyo"],
     ],
   },
   {
@@ -67,7 +67,8 @@ export const TABLES = [
       ["payer_id", "开销归属，不是谁拍的"],
       ["total_cents", "底部总价，整数分"],
       ["computed_total_cents", "行项目加总"],
-      ["fingerprint / image_sha256", "跨用户去重"],
+      ["barcode / printed_at", "票面条码 + 打印时间，去重主键"],
+      ["fingerprint", "barcode|printed_at 的哈希"],
       ["status", "pending_confirm → confirmed"],
     ],
   },
@@ -144,7 +145,7 @@ export const FLOWS = [
     steps: [
       "微信发照片。finance 技能看图，抽出商家、行项目、底部总价。",
       "行项目加总，与底部比，容差 ±2 分。对不上就停，不 confirmed。",
-      "fingerprint / 图片哈希去重。别人传过同一张 → 加 claim，不建第二张票。",
+      "barcode + 票面时间戳去重。别人传过同一张 → 加 claim，不建第二张票。",
       "以 pending_confirm 入库，把清单发回微信。你回「对」。",
       "食品行按 food_knowledge 提议进冰箱（叶菜 2 天、鸡胸 2 天…）。",
       "同意后写 fridge_items，并挂两条 memo：过期前 2 天、过期当天。",
@@ -166,7 +167,7 @@ export const FLOWS = [
     id: "heartbeat",
     title: "心跳巡检（便宜、不准时）",
     steps: [
-      "每 30 分钟，限制在你时区 08:00–22:00。",
+      "每 30 分钟，限制在东京 08:00–22:00，target 为 openclaw-weixin。",
       "只跑 life.py due：到期 memo、48h 内过期食品、待确认小票。",
       "全空 → HEARTBEAT_OK，不说话。",
       "有事 → 最多两条短讯，更新 last_fired_at，6 小时内不重复。",
@@ -197,16 +198,13 @@ export const ADVICE = [
 export const INSTALL_STEPS = [
   {
     title: "放到工作区",
-    code: `cp -R life-os-skills ~/.openclaw/workspace/
-mkdir -p ~/.openclaw/workspace/skills
-for s in life-db life-memos life-finance life-fridge life-stocks life-proactive; do
-  ln -sfn ../life-os-skills/skills/$s ~/.openclaw/workspace/skills/$s
-done`,
+    code: `mkdir -p ~/.openclaw/workspace/skills
+cp -R . ~/.openclaw/workspace/skills/life-os-skills`,
   },
   {
     title: "初始化数据库",
-    code: `python3 ~/.openclaw/workspace/life-os-skills/scripts/life.py init
-python3 ~/.openclaw/workspace/life-os-skills/scripts/life.py path`,
+    code: `python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py init
+python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py path`,
   },
   {
     title: "贴进 AGENTS.md / HEARTBEAT.md",
@@ -220,8 +218,8 @@ python3 ~/.openclaw/workspace/life-os-skills/scripts/life.py path`,
     defaults: {
       heartbeat: {
         every: "30m",
-        target: "owner",
-        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Shanghai" }
+        target: "openclaw-weixin",
+        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Tokyo" }
       }
     }
   }
@@ -232,6 +230,8 @@ python3 ~/.openclaw/workspace/life-os-skills/scripts/life.py path`,
 export const RECEIPT_DEMO = {
   merchant: "盒马鲜生",
   when: "今天 19:12",
+  barcode: "262508241912",
+  printedAt: "2026-08-24 19:12:03",
   payer: "你",
   lines: [
     { name: "生菜", qty: 1, cents: 490, food: true, days: 2, loc: "fridge" },

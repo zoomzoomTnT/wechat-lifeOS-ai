@@ -18,7 +18,7 @@ const BODIES: Record<string, { why: string; does: string[]; not: string[] }> = {
     does: [
       "视觉抽取行项目与底部总价",
       "±2 分对账，对不上禁止 confirmed",
-      "fingerprint 去重 + receipt_claims 归属",
+      "barcode + 票面时间戳去重 + receipt_claims 归属",
       "熟店写入 merchants，食品行交给 fridge",
     ],
     not: ["看不见图时不准编金额", "不把拍照人当成付款人"],
