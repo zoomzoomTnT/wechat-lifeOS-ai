@@ -3,9 +3,9 @@
     defaults: {
       heartbeat: {
         every: "30m",
-        target: "owner",
+        target: "openclaw-weixin",
         lightContext: false,
-        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Shanghai" }
+        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Tokyo" }
       }
     }
   }
