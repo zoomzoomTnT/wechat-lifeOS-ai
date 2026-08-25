@@ -12,7 +12,7 @@ OpenClaw 平时只把每个 skill 的 `name` + `description` 放进上下文。�
 
 | Skill | 何时进上下文 |
 |---|---|
-| `life-db` | 任何读写 `life.db` |
+| `life-db` | 备份、裸 SQL、问库本身 |
 | `life-finance` | 小票 / 记账 / 商家 |
 | `life-fridge` | 冰箱 / 过期 / 食品 |
 | `life-memos` | 提醒 / cron / 到期 |

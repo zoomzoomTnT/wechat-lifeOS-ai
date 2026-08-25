@@ -53,13 +53,8 @@ def connect(db: Path) -> sqlite3.Connection:
     db.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(str(db), timeout=5)
     con.row_factory = sqlite3.Row
-    pragma(con, "PRAGMA busy_timeout = 5000")
+    pragma(con, "PRAGMA busy_timeout = 3000")
     pragma(con, "PRAGMA foreign_keys = ON")
-    # WAL can hang on some network/docker volumes. Ignore failure, stay on DELETE.
-    try:
-        pragma(con, "PRAGMA journal_mode = WAL")
-    except sqlite3.Error as exc:
-        sys.stderr.write(f"life.py: WAL not set ({exc}); continuing\n")
     return con
 
 
@@ -133,6 +128,18 @@ def ensure(con: sqlite3.Connection) -> dict:
             n = con.execute("SELECT COUNT(*) AS c FROM food_knowledge").fetchone()["c"]
         return {"ok": True, "action": "ensure", "already": True, "food_knowledge": n}
     return init_db(con)
+
+
+def maybe_schema(con: sqlite3.Connection, fn):
+    """Run fn. Only create/migrate schema if a table or column is missing."""
+    try:
+        return fn()
+    except sqlite3.OperationalError as exc:
+        msg = str(exc).lower()
+        if "no such table" in msg or "no such column" in msg:
+            ensure(con)
+            return fn()
+        raise
 
 
 def query(con: sqlite3.Connection, sql: str, params) -> dict:
@@ -282,7 +289,6 @@ def fridge_add(
     unit: str | None,
     cut: bool,
 ) -> dict:
-    ensure(con)
     food = lookup_food(con, name)
     name_norm = (food["name_norm"] if food else name.strip())
     category = food["category"] if food else "other"
@@ -388,7 +394,6 @@ def fridge_add(
 
 
 def fridge_list(con: sqlite3.Connection, status: str) -> dict:
-    ensure(con)
     rows = [
         dict(r)
         for r in con.execute(
@@ -483,55 +488,57 @@ def main() -> int:
     con = connect(db)
     try:
         if args.cmd in ("init", "ensure"):
-            out(ensure(con) if args.cmd == "ensure" else init_db(con))
+            out(ensure(con))
         elif args.cmd == "query":
-            ensure(con)
-            out(query(con, args.sql, parse_params(args.params)))
+            out(maybe_schema(con, lambda: query(con, args.sql, parse_params(args.params))))
         elif args.cmd == "exec":
-            ensure(con)
-            out(execute(con, args.sql, parse_params(args.params)))
+            out(maybe_schema(con, lambda: execute(con, args.sql, parse_params(args.params))))
         elif args.cmd == "due":
-            ensure(con)
-            out(due(con, args.within_hours))
+            out(maybe_schema(con, lambda: due(con, args.within_hours)))
         elif args.cmd == "lookup-receipt":
-            ensure(con)
-            fpv = args.fingerprint.strip()
-            if not fpv:
-                fpv = fingerprint(args.barcode, args.printed_at)
-            rows = [
-                dict(r)
-                for r in con.execute(
-                    """
-                    SELECT * FROM receipts
-                    WHERE fingerprint = ?
-                       OR (barcode = ? AND printed_at = ? AND ? != '')
-                    ORDER BY id DESC
-                    """,
-                    (
-                        fpv,
-                        args.barcode.strip(),
-                        args.printed_at.strip(),
-                        args.barcode.strip(),
-                    ),
-                ).fetchall()
-            ]
-            out({"ok": True, "fingerprint": fpv, "rows": rows, "count": len(rows)})
+            def _lookup():
+                fpv = args.fingerprint.strip()
+                if not fpv:
+                    fpv = fingerprint(args.barcode, args.printed_at)
+                rows = [
+                    dict(r)
+                    for r in con.execute(
+                        """
+                        SELECT * FROM receipts
+                        WHERE fingerprint = ?
+                           OR (barcode = ? AND printed_at = ? AND ? != '')
+                        ORDER BY id DESC
+                        """,
+                        (
+                            fpv,
+                            args.barcode.strip(),
+                            args.printed_at.strip(),
+                            args.barcode.strip(),
+                        ),
+                    ).fetchall()
+                ]
+                return {"ok": True, "fingerprint": fpv, "rows": rows, "count": len(rows)}
+
+            out(maybe_schema(con, _lookup))
         elif args.cmd == "fridge-add":
             out(
-                fridge_add(
+                maybe_schema(
                     con,
-                    name=args.name,
-                    qty=args.qty,
-                    owner_id=args.owner_id,
-                    added_by_id=args.added_by_id,
-                    location=args.location,
-                    days=args.days,
-                    unit=args.unit,
-                    cut=args.cut,
+                    lambda: fridge_add(
+                        con,
+                        name=args.name,
+                        qty=args.qty,
+                        owner_id=args.owner_id,
+                        added_by_id=args.added_by_id,
+                        location=args.location,
+                        days=args.days,
+                        unit=args.unit,
+                        cut=args.cut,
+                    ),
                 )
             )
         elif args.cmd == "fridge-list":
-            out(fridge_list(con, args.status))
+            out(maybe_schema(con, lambda: fridge_list(con, args.status)))
         elif args.cmd == "backup":
             out(backup(con, Path(args.dest).expanduser()))
         else:
