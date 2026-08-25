@@ -217,9 +217,9 @@ python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" path`,
   agents: {
     defaults: {
       heartbeat: {
-        every: "30m",
+        every: "10m",
         target: "openclaw-weixin",
-        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Tokyo" }
+        activeHours: { start: "00:00", end: "23:59", timezone: "Asia/Tokyo" }
       }
     }
   }
