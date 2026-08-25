@@ -18,7 +18,7 @@ metadata:
 
 ## 先开口
 
-跑 `life.py` 必须前台 exec、`timeoutSeconds: 15`、`python3 -u`。15 秒无 toolResult 则重试一次并回微信，不要干等。
+跑 `life.py` 必须 `host=gateway`、`ask=off`、`background=false`、`yieldMs=60000`、`timeoutSeconds=15`、`python3 -u`。默认 yieldMs=10000 会把命令丢进后台，微信永远等不到 toolResult。
 
 ```
 python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"

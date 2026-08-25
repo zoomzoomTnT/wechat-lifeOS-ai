@@ -16,7 +16,7 @@ metadata:
 
 ## 先开口
 
-看图或写库之前先说一句。exec 用 `python3 -u`、前台、`timeoutSeconds: 15`。无 toolResult 则重试一次并回微信。
+看图或写库之前先在助手文本说一句（不要先用 message 工具）。exec：`host=gateway` `ask=off` `yieldMs=60000` `timeoutSeconds=15` `python3 -u`。
 
 不要先 `init`。食品行确认后再 `fridge-add --name "<物品>"`。
 
