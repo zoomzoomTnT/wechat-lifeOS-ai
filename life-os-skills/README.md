@@ -12,7 +12,7 @@ OpenClaw 平时只把每个 skill 的 `name` + `description` 放进上下文。�
 
 | Skill | 何时进上下文 |
 |---|---|
-| `life-db` | 任何读写 `life.db` |
+| `life-db` | 备份、裸 SQL、问库本身 |
 | `life-finance` | 小票 / 记账 / 商家 |
 | `life-fridge` | 冰箱 / 过期 / 食品 |
 | `life-memos` | 提醒 / cron / 到期 |
@@ -26,7 +26,7 @@ OpenClaw 平时只把每个 skill 的 `name` + `description` 放进上下文。�
 Schema 不会自己说话。必须叫醒模型：
 
 1. **精确时刻**（美东周五 8:25 期权）→ OpenClaw automation cron，`--channel openclaw-weixin`
-2. **模糊窗口**（食品快过期、待确认小票）→ heartbeat 每 30 分钟跑 `life.py due`
+2. **模糊窗口**（食品快过期、待确认小票）→ heartbeat 每 10 分钟跑 `life.py due`（调试用；稳定后可改回 30m）
 
 `memos` 表是唯一出口。别的表只存事实。
 

@@ -29,7 +29,7 @@ Expense **归属** = `receipts.payer_id`. Household viewing / split = `receipt_c
 写入前：
 
 ```bash
-python3 {baseDir}/scripts/life.py lookup-receipt --barcode "..." --printed-at "..."
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" lookup-receipt --barcode "..." --printed-at "..."
 ```
 
 命中已有 confirmed/pending 行：

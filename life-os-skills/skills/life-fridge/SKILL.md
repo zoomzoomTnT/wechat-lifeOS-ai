@@ -1,10 +1,10 @@
 ---
 name: life-fridge
 description: >
-  Add and track fridge food in Life OS. Use immediately when the user says
-  冰箱, 冷冻, 西瓜, watermelon, 过期, 蔬菜, 水果, 肉, 牛奶, 剩菜, 冰水,
-  冰茶, 吃完了, 扔掉, or "add X to the fridge". Run fridge-add; do not run
-  life.py init first.
+  Track fridge / freezer / pantry food in Life OS. Use when the user mentions
+  冰箱, 冷冻, 过期, 蔬菜, 水果, 肉, 牛奶, 剩菜, 冰水, 冰茶, 吃完了, 扔掉,
+  or adding food to the fridge. Before every exec, send a short Chinese ack
+  with the message tool (or assistant text). Then fridge-add; do not run init.
 version: 1.0.0
 metadata:
   openclaw:
@@ -15,58 +15,40 @@ metadata:
 
 # life-fridge — 冰箱
 
-脚本：
+## 先开口
+
+每次 `life.py` / `exec` **之前**先让用户看到字：有 `message` 工具就先发到当前微信；否则同一轮先写一句中文再 tool。禁止静默 tool。
+
+例：「好，记进冰箱。」→ 再跑命令 → 「记下了，大约 ×月×日过期。」
 
 ```
-LIFE=~/.openclaw/workspace/skills/life-os-skills/scripts/life.py
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py"
 ```
 
-## 加一样东西（一条命令）
+不要先 `init`。库不存在时 `fridge-add` 自己建。
 
-用户说「冰箱加个西瓜 / add a watermelon」时，**只跑这个**，不要先 `init`，不要先读 life-db：
+## 放入
 
 ```bash
-python3 "$LIFE" fridge-add --name 西瓜
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" fridge-add --name "<物品>"
 ```
 
-切开的西瓜加 `--cut`（强制冷藏 3 天）：
+切开加 `--cut`。用户给了天数用 `--days N`。用 JSON 的 `expires_at` 回用户。不必为过期建 cron。
 
 ```bash
-python3 "$LIFE" fridge-add --name 西瓜 --cut
-```
-
-命令会：ensure schema（已存在则跳过）、查 `food_knowledge`、插入 `fridge_items`、写过期 memo。stdout JSON。用里面的 `expires_at` / `memos` 用中文回用户。
-
-**不要**再为过期建 OpenClaw cron：心跳会跑 `life.py due`。
-
-列出现有：
-
-```bash
-python3 "$LIFE" fridge-list
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" fridge-list
 ```
 
 ## 保质期
 
-`fridge-add` 已查表。西瓜整颗冷藏约 3 天；切开 3 天。包装日期优先，用 `--days N` 覆盖。
+查 `food_knowledge`。没有则：叶菜/草莓 2 天，生鱼虾 1 天，肉禽冷藏 2 天，奶 5 天，矿泉水不建过期提醒，剩菜 1–2 天。包装日期优先。
 
-矿泉水等不坏的东西：知识库没有 `fridge_days` 时不建 expiry memo。
+## 到期当天
 
-## 到期怎么问
-
-心跳触发后短问：
-
-> 西瓜今天该处理了。吃完了还是扔了？
-
-- 吃完 → `status='eaten'`，可记 preference 1–5
-- 扔了 → `status='discarded'`
-- 还在 → `expires_at` +1 day
+> \<名称\>今天该处理了。吃完了、扔了，还是我再记一天？
 
 ```bash
-python3 "$LIFE" exec \
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" exec \
   "UPDATE fridge_items SET status=?, updated_at=datetime('now') WHERE id=?" \
-  --params '["eaten", 3]'
+  --params '["eaten", <id>]'
 ```
-
-## 其它用户
-
-`--owner-id` / `--added-by-id` 默认 1。别人放的再改。

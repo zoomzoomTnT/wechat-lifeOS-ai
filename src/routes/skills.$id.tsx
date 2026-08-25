@@ -10,7 +10,7 @@ const BODIES: Record<string, { why: string; does: string[]; not: string[] }> = {
       "ensure（库已在则秒退）/ backup / 裸 SQL",
       "JSON 输出的 query / exec / due",
     ],
-    not: ["不要抢「冰箱加西瓜」", "不要每轮都跑 init", "不解释小票"],
+    not: ["不要抢冰箱写入", "不要每轮都跑 init", "不解释小票"],
   },
   "life-finance": {
     why: "看图分录是最容易编造金额的地方，必须对总价、去重、先确认再入账。",
@@ -25,7 +25,7 @@ const BODIES: Record<string, { why: string; does: string[]; not: string[] }> = {
   "life-fridge": {
     why: "食品有保质期。常识写进 food_knowledge，过期必须变成 memo 才会找你。",
     does: [
-      "一条 fridge-add（西瓜等），不要先 init",
+      "fridge-add 直接插入，缺表才建库",
       "过期前 2 天 + 当天两条 expiry memo，交给心跳",
       "吃完/丢掉后记 preference 与 repurchase",
     ],

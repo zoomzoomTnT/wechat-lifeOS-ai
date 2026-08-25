@@ -19,7 +19,7 @@ export const SKILLS = [
     id: "life-fridge",
     name: "life-fridge",
     title: "冰箱",
-    blurb: "一条 fridge-add 入柜。不要先跑 init。",
+    blurb: "fridge-add 直接插入。每次 tool 前先开口。",
     triggers: "冰箱、过期、蔬菜水果肉、冰茶、吃完了",
     loads: "食品相关，或记账确认后的食品行",
   },
@@ -202,9 +202,9 @@ export const INSTALL_STEPS = [
 cp -R . ~/.openclaw/workspace/skills/life-os-skills`,
   },
   {
-    title: "初始化数据库",
-    code: `python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py init
-python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py path`,
+    title: "第一次写入即建库",
+    code: `python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" fridge-add --name "<物品>"
+python3 "$HOME/.openclaw/workspace/skills/life-os-skills/scripts/life.py" path`,
   },
   {
     title: "贴进 AGENTS.md / HEARTBEAT.md",
@@ -217,9 +217,9 @@ python3 ~/.openclaw/workspace/skills/life-os-skills/scripts/life.py path`,
   agents: {
     defaults: {
       heartbeat: {
-        every: "30m",
+        every: "10m",
         target: "openclaw-weixin",
-        activeHours: { start: "08:00", end: "22:00", timezone: "Asia/Tokyo" }
+        activeHours: { start: "00:00", end: "23:59", timezone: "Asia/Tokyo" }
       }
     }
   }
