@@ -1,14 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/cn";
 
-const NAV = [
-  { to: "/", label: "总览" },
-  { to: "/skills", label: "技能" },
-  { to: "/schema", label: "表结构" },
-  { to: "/flows", label: "流程" },
-  { to: "/playground", label: "演练" },
-  { to: "/install", label: "安装" },
-] as const;
+const NAV = [{ to: "/", label: "retired" }] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -20,18 +13,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <Link to="/" className="flex items-baseline gap-3">
             <span className="font-display text-xl tracking-tight text-fg">
-              生活台账
+              wechat-lifeOS-ai
             </span>
             <span className="text-xs uppercase tracking-[0.18em] text-muted">
-              Life Ledger
+              retired
             </span>
           </Link>
           <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0 lg:pb-0">
             {NAV.map((item) => {
-              const active =
-                item.to === "/"
-                  ? pathname === "/"
-                  : pathname === item.to || pathname.startsWith(`${item.to}/`);
+              const active = pathname === "/";
               return (
                 <Link
                   key={item.to}
@@ -55,8 +45,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="relative border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-6 text-sm text-muted sm:px-6">
-          <p>一个 SQLite 文件，六份技能说明书。通道是微信，不是插件本体。</p>
-          <p className="font-mono text-xs">life.db · openclaw-weixin · workspace/skills</p>
+          <p>不再交付 Life OS skill。本仓库与 lifeOS-ai 没有运行时关联。</p>
         </div>
       </footer>
     </div>
